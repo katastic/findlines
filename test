@@ -1,0 +1,1 @@
+gdb -ex "b _d_assert" -ex "b _d_assertp" -ex "b _d_assert_msg" --args ./findlines ~/Downloads/defender-of-boston-the-rock-island-mystery/dob.exe 

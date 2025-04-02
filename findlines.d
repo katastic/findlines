@@ -28,20 +28,8 @@
 import std.stdio, std.conv;
 import std.algorithm;
 import std.ascii;
-//                    import std.uni : isAlphaUni;
-                    
-import std.algorithm;
 import std.string : representation;
-
 import std.typecons;
-
-
-bool boundedBy(double value, double min, double max){
-    if(value < min)return false;
-    if(value > max)return false;
-    return true;
-    }
-
 import std.stdio;
 import std.string;
 import std.algorithm;
@@ -49,7 +37,16 @@ import std.conv;
 import std.math;
 import std.array;
 import std.range;
-import std.typecons;
+import std.array;
+import std.file;
+import std.container;
+import std.regex;
+
+bool boundedBy(double value, double min, double max){
+    if(value < min)return false;
+    if(value > max)return false;
+    return true;
+    }
 
 // Function to calculate Shannon entropy of a string
 double entropy(string input) {
@@ -79,12 +76,8 @@ float percentValid(string s){
     float howMany = howManyValid(s);
     return howMany/len;
 }
-import std.array;
-import std.file;
-import std.container;
-import std.regex;
 
-string[] words;
+bool[string] words;
 string[] extraWords = ["cfg", "txt", "ini"];
 
 // Function to load words from dictionary file into a hash set
@@ -92,9 +85,10 @@ void loadDictionary(string filename="/usr/share/dict/american-english") {
     //string[] words;
     File f = File(filename);
     foreach (line; f.byLine) {
-        words ~= line.strip().toLower.to!string;
+        //words ~= line.strip.toLower.to!string;
+        words[line.strip.toLower.to!string] = true;
         }
-    words = words ~ extraWords;
+    //words = words ~ extraWords;
     }
 
 
@@ -103,8 +97,8 @@ string[] findWordsInText(string text) {
     if(words.length == 0)loadDictionary();
     string[] foundWords;
     
-    foreach (word; words) {
-        if (text.toLower.canFind(word)) {
+    foreach (word; words.keys) {
+        if (text.onlyPrintable.toLower.canFind(word)) { // .toLower breaks on malformed unicode
             foundWords ~= word;
         }
     }
@@ -115,7 +109,6 @@ string[] findWordsInText(string text) {
 auto numWordsIn(string s){
     return findWordsInText(s).length;
 }
-
 
 bool isNumeric(dchar c) pure nothrow @nogc @safe{
     return (!isAlpha(c) && isAlphaNum(c));
@@ -172,8 +165,12 @@ void main(string[] args)
                         goto goodenough;
 
                         lastChance: //this is most expensive operation so we do it ONLY if we can't find any other justifications.
-                        if(entropy(currentSegment).boundedBy(0, 4) && 
-                            !findWordsInText(currentSegment))continue;
+                        string[] matches;
+                        if(entropy(currentSegment).boundedBy(0, 4)){
+                            matches = findWordsInText(currentSegment);
+                            if(matches.length == 0)continue;
+                        }
+                             
                         // there's a few tests we might want to do that could NEVER result in a word (all numbers) to quick terminate.
                     
                         goodenough:
