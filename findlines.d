@@ -76,8 +76,7 @@ float percentValid(string s){
     float howMany = howManyValid(s);
     return howMany/len;
 }
-
-bool[string] words;
+string[] words;
 string[] extraWords = ["cfg", "txt", "ini"];
 
 // Function to load words from dictionary file into a hash set
@@ -85,10 +84,9 @@ void loadDictionary(string filename="/usr/share/dict/american-english") {
     //string[] words;
     File f = File(filename);
     foreach (line; f.byLine) {
-        //words ~= line.strip.toLower.to!string;
-        words[line.strip.toLower.to!string] = true;
+        words ~= line.strip.toLower.to!string;
         }
-    //words = words ~ extraWords;
+    words = words ~ extraWords;
     }
 
 
@@ -97,7 +95,7 @@ string[] findWordsInText(string text) {
     if(words.length == 0)loadDictionary();
     string[] foundWords;
     
-    foreach (word; words.keys) {
+    foreach (word; words) {
         if (text.onlyPrintable.toLower.canFind(word)) { // .toLower breaks on malformed unicode
             foundWords ~= word;
         }
@@ -143,7 +141,7 @@ void main(string[] args)
             
             if (c == '\n' || c == '\0')
             {
-                if (currentSegment.length > 2)  // Only print non-empty segments and >x chars
+                if (currentSegment.length > 3)  // Only print non-empty segments and >x chars
                 {
                     string delimiterType = (c == '\n') ? "n" : "0";                    
 
@@ -166,7 +164,7 @@ void main(string[] args)
 
                         lastChance: //this is most expensive operation so we do it ONLY if we can't find any other justifications.
                         string[] matches;
-                        if(entropy(currentSegment).boundedBy(0, 4)){
+                        if(entropy(currentSegment).boundedBy(0, 4) && percentNonASCII(currentSegment) < .5){
                             matches = findWordsInText(currentSegment);
                             if(matches.length == 0)continue;
                         }
