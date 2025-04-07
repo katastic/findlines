@@ -1,6 +1,15 @@
+/+
+	talk.dat is aa bb cc dd,ee ff
+				addr	    length
+				
+	idemtext.dat looks like 
+				aa bb, cc dd
+				addr , length
+
++/
+
 import std.file;
 import std.stdio;
-import std.string;
 
 struct entry{
 	long addr;
@@ -11,7 +20,15 @@ entry readStringMeta(ubyte[] s){
 	entry e;
 	e.addr = s[0] + s[1]*256 - 1;// + s[2]*(256^^2) + s[3]*(256^^3); // FOR SOME REASON its -1. qbasic arrays start at 1, possibly!
 	e.length = cast(short)(s[4] + s[5]*256); 
-	writefln("%3s %3s %3s %3s, %3s %3s -- start: %s end: %s", s[0], s[1], s[2], s[3], s[4], s[5], s[1] + s[1]*256, e.addr + e.length);
+	writefln("%3s %3s %3s %3s, %3s %3s -- start: %s end: %s len: %s", s[0], s[1], s[2], s[3], s[4], s[5], s[0] + s[1]*256, e.addr + e.length, e.length);
+	return e;
+}
+
+entry readStringMetaTwoByte(ubyte[] s){
+	entry e;
+	e.addr = s[0] + s[1]*256 - 1;
+	e.length = cast(short)(s[2] + s[3]*256); 
+	writefln("%3s %3s, %3s %3s -- start: %s end: %s len: %s", s[0], s[1], s[2], s[3], s[0] + s[1]*256, e.addr + e.length, e.length);
 	return e;
 }
 
@@ -183,9 +200,9 @@ void main(string[] args) {
 	cipherMap[cast(char)254] = '3'; // þ    
 	bool[char] missing;
     
+	string decode(const char[] str){
 //	cipherMap[cast(char)95] = 'k'; // i think, this was an encoded phrase kILL yam?
 
-	string decode(const char[] str){
 		string output;
 		foreach(c; str){
 			if (c in cipherMap) {
@@ -193,44 +210,39 @@ void main(string[] args) {
             } else {
 				missing[c] = true; 
    			}
-		}
-			
+			}
 		return output;
 		}
 
-    // Read from stdin line by line
-    foreach (line; stdin.byLine) {
-        string input = line.idup; // Convert char[] to immutable string
-        char[] decoded;
-        // Process each character as ASCII
-        foreach (char c; input) {
-            // Apply the cipher mapping if the character is in the map, otherwise use '?'
-            if (c in cipherMap) {
-                decoded ~= cipherMap[c];
-            } else {
-				missing[c] = true; 
-                decoded ~= '?';
-                decoded ~= '[';
-                decoded ~= c; //'?'; // Replace unmapped characters with '?'
-                decoded ~= ']';
-                decoded ~= format("%d", c); //'?'; // Replace unmapped characters with '?'
-                decoded ~= '?';
-            }
-        }
-        
-    bool isASCIIx(const char c){
-		if(c >= 32 && c <= 126)return true;
-		return false; 
-		}
-	// Print the decoded line to console
-	writeln(decoded);
-	import std.algorithm, std.ascii;
-	if(args.length > 1 && (args[1] == "-v" || args[1] == "--list")){
-	foreach( c; missing.keys){
-		if(!isASCIIx(c))writefln("cipherMap[cast(char)%d] = ''; \\\\ \'%s\'", c, c);
-		else writefln("cipherMap[\'%s\'] = ''; \\\\ \'%d\'", c, c);
-	}}
-//		writef("[%d]=[%s],", c, c);	
+// Read the file as bytes
+    string filePath = args[1];
+    ubyte[] data = cast(ubyte[]) read(filePath);
+    auto fileLength = data.length;
 
-    }
+	int stringNumber = 1;
+
+string mode = "";
+if(args[1][$-8..$] == "talk.dat" || (args.length > 2 && args[2] == "--four"))mode = "four";
+if(args[1][$-12..$] == "idemtext.dat" || (args.length > 2 && args[2] == "--two"))mode = "two";
+
+
+    for (int i = 0; i < fileLength; i+=6) {
+		entry e;
+		
+		if(mode == "two")e = readStringMetaTwoByte(data[i..i+5]);
+		if(mode == "four")e = readStringMeta(data[i..i+7]);
+
+
+		size_t startaddr = e.addr;
+		size_t endaddr = e.addr+e.length;
+		if(e.length + e.addr > fileLength)break;
+		if(startaddr  >= fileLength)break;
+		writefln("\nstring #%s-------------------------------------------------\n\n\"%s\"",
+			stringNumber,
+			decode(cast(const char[])data[startaddr..endaddr])
+			);
+		stringNumber++;
+		}
+	
+	return ;
 }
