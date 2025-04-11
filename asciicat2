@@ -1,0 +1,9 @@
+# replace="\n"
+replace=" "
+# | tr -s '[:space:]' "$replace"#  remove repeating spaces
+cat "$1" | tr -c '[:print:]\n' ' '  && echo
+
+
+# heuristics?
+# is it all numbers -> reject
+# is it all or mostly the same letter? reject.

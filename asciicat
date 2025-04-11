@@ -1,0 +1,1 @@
+cat anibrain.dat | tr -dc '[:print:]'
